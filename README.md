@@ -4,7 +4,9 @@ A small, responsive daily expense tracker for the money between paydays. Choose 
 
 ## Use
 
-Serve this folder with any static web host, including GitHub Pages, or run `npm start` and open http://127.0.0.1:4173. No installation or build step is required. `npm test` runs the calculation tests with Node 22+.
+For owner-only Google sign-in, follow [GOOGLE-SIGN-IN.md](GOOGLE-SIGN-IN.md). Run `npm ci`, set the private server environment variables shown in `.env.example`, and run `npm start`. This starts the protected server, defaulting to port 4174 locally. Google OAuth needs the matching registered callback URL. Incomplete configuration leaves the app locked.
+
+For a local preview without authentication, run `npm run preview` and open http://127.0.0.1:4173. That preview listens only on loopback and must not be used as a hosted server. `npm test` runs the budget and sign-in tests with Node 22+.
 
 1. Set the window's start date and next payday. The next payday belongs to the next window. The first window can be shorter than 14 days.
 2. Enter your actual opening bank balance, including income already received. Later contributions can be logged as money received. Expected income does not count.
@@ -24,13 +26,13 @@ Keep all entries within the chosen dates. Opening money must be the balance befo
 
 ## Data and privacy
 
-No bank connection, account sign-in, analytics, external fonts, server-side storage or cloud sync. Records are stored in localStorage on the current browser/device and origin. Hosting the app on GitHub Pages does not upload entries to GitHub. Someone using the same browser profile can see the records. Clearing browser data can remove them. Export backups regularly; import a backup on another device to move records. The app does not automatically send entries to the finance-coaching chat or its reminders.
+No bank connection, analytics, external fonts, server-side budget storage or cloud sync. The protected server checks Google identity and an owner-email allowlist; budget records remain in localStorage on the current browser/device and origin. The static preview and GitHub Pages do not enforce sign-in. Hosting the app on GitHub Pages does not upload entries to GitHub. Someone controlling the same browser profile can inspect its local records even with Google sign-in. Clearing browser data can remove them. Export backups regularly; import a backup on another device or host to move records. The app does not automatically send entries to the finance-coaching chat or its reminders.
 
 Backups contain financial information. Keep them private and out of source control. Import validates dates, categories and integer money values and asks before replacing existing records. Monetary calculations use integer cents. The app retains completed windows rather than silently rolling balances forward. Source code contains no personal financial data; user-specific setup can be imported locally.
 
 ## GitHub Pages
 
-In repository **Settings → Pages**, select **Deploy from a branch**, branch **main**, folder **/ (root)**. Availability for private repositories depends on your GitHub plan. Source can also be downloaded and served locally without publishing. GitHub Pages serves the static app; it is not a private database or a backup service.
+GitHub Pages can serve only the public static version; it cannot run this Google sign-in server. If a Pages version is already published, it stays publicly accessible until you disable Pages after verifying the protected host. Keep a private backup before changing hosts. See the Google sign-in guide for the hosting setup. Do not assume the presence of `auth-server.js` in a repository protects a Pages deployment.
 
 ## Limitations
 
