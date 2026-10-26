@@ -7,7 +7,7 @@ export const daysBetween=(a,b)=>dateNumber(b)-dateNumber(a);
 export function today(){const parts=new Intl.DateTimeFormat('en-NZ',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const part=t=>parts.find(p=>p.type===t).value;return `${part('year')}-${part('month')}-${part('day')}`;}
 export const uid=()=>globalThis.crypto.randomUUID();
 export function newPeriod(start,end,opening=0,buffer=0,bills=[]){return{id:uid(),start,end,opening,buffer,savingsGoal:0,bills:structuredClone(bills),expenses:[],income:[],savings:[],paidBills:[],noSpendDays:[]};}
-export function occurrences(p){const rows=[];
+export function occurrences(p,on=today()){const rows=[];
  for(const b of p.bills){const anchor=dateNumber(b.date),start=dateNumber(p.start),end=dateNumber(p.end);if(b.end&&dateNumber(b.end)<start)continue;
   if(b.frequency==='monthly'){
    const a=new Date(anchor*86400000);const begin=new Date(start*86400000);let y=begin.getUTCFullYear(),m=begin.getUTCMonth();
@@ -15,13 +15,13 @@ export function occurrences(p){const rows=[];
     if(n>=start&&n>=anchor&&n<end&&(!b.end||n<=dateNumber(b.end)))push(n);m++;if(m===12){m=0;y++;}}
   }else if(b.frequency==='once'){if(anchor>=start&&anchor<end&&(!b.end||anchor<=dateNumber(b.end)))push(anchor);
   }else{const step=b.frequency==='weekly'?7:14;let n=anchor+Math.max(0,Math.ceil((start-anchor)/step))*step;for(;n<end;n+=step){if(!b.end||n<=dateNumber(b.end))push(n);}}
-  function push(n){const date=new Date(n*86400000).toISOString().slice(0,10);const key=b.id+'@'+date;rows.push({key,billId:b.id,name:b.name,amount:b.amount,date,paid:p.paidBills.includes(key)});}
+  function push(n){const date=new Date(n*86400000).toISOString().slice(0,10);const key=b.id+'@'+date;const recordedEarly=p.paidBills.includes(key);rows.push({key,billId:b.id,name:b.name,amount:b.amount,date,paid:date<=on||recordedEarly,recordedEarly:recordedEarly&&date>on});}
  }
  return rows.sort((a,b)=>a.date.localeCompare(b.date)||a.name.localeCompare(b.name));
 }
 const sum=a=>a.reduce((s,x)=>s+x.amount,0);
 export function totals(p,on=today()){
- const bills=occurrences(p),fixed=sum(bills),paid=sum(bills.filter(b=>b.paid)),spent=sum(p.expenses),income=sum(p.income),saved=sum(p.savings);
+ const bills=occurrences(p,on),fixed=sum(bills),paid=sum(bills.filter(b=>b.paid)),spent=sum(p.expenses),income=sum(p.income),saved=sum(p.savings);
  const remaining=p.opening+income-fixed-spent-saved-p.buffer;
  const daysLeft=Math.max(0,daysBetween(on<p.start?p.start:on,p.end));
  return{fixed,paid,spent,income,saved,remaining,daysLeft,perDay:daysLeft?Math.floor(Math.max(0,remaining)/daysLeft):0,cash:p.opening+income-spent-saved-paid,availableAtStart:p.opening-fixed-p.buffer};

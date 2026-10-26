@@ -12,7 +12,7 @@ For a local preview without authentication, run `npm run preview` and open http:
 2. Enter your actual opening bank balance, including income already received. Later contributions can be logged as money received. Expected income does not count.
 3. Add fixed bills with exact due dates and weekly, fortnightly, monthly or one-off schedules. Monthly dates clamp to the last day of shorter months. An optional last date supports cancellations and price changes.
 4. Log daily purchases with a category dropdown. The category donut and money-left line chart update immediately. Edit or delete mistakes.
-5. Mark fixed bills paid in the bills list. Do not also enter them as daily expenses: they were already reserved.
+5. Fixed bills automatically deduct from estimated cash on their due date, using Pacific/Auckland dates. No ticking is required. Do not enter them again as daily expenses: they were already reserved. Edit the schedule if an actual debit is delayed or changed.
 6. Log savings only when you actually transfer money out of the tracked spending account. A savings target and unspent cash are not treated as savings achieved.
 7. Start the next fortnight with its actual bank balance (including payday income), copying bill schedules if desired. Previous windows stay available.
 
@@ -20,7 +20,7 @@ For a local preview without authentication, run `npm run preview` and open http:
 
 **Left to spend = opening money + later money received − all fixed bills in the window − daily expenses − actual savings transfers − keep-back buffer.**
 
-Estimated current cash subtracts only fixed bills marked paid, while left to spend reserves every scheduled bill whether paid or unpaid. The daily guide divides positive remaining money by calendar days left including today, using Pacific/Auckland dates. It includes variable essentials such as groceries and fuel, not just discretionary shopping. Negative budgets stay visibly negative. The trend chart reserves fixed bills from the start and plots the effect of income, expenses and savings entries.
+Estimated current cash automatically subtracts fixed bills dated today or earlier in Auckland time, while left to spend reserves every bill in the window from the start. The allowance therefore does not fall a second time when a bill comes due. Previously recorded early-paid bills remain honoured without double counting. No synthetic expense entries or duplicate automatic-payment records are written. The display refreshes at the next date while open and recalculates when reopened; no background service is needed. A visible estimated-bank-balance figure shows scheduled deductions. The daily guide divides positive remaining money by calendar days left including today, using Pacific/Auckland dates. It includes variable essentials such as groceries and fuel, not just discretionary shopping. Negative budgets stay visibly negative. The trend chart reserves fixed bills from the start and plots the effect of income, expenses and savings entries.
 
 Keep all entries within the chosen dates. Opening money must be the balance before that window's logged expenses; do not start from today's balance and re-enter spending already included in it. Money returned from savings should be logged as received income, with a note, and reviewed when assessing net saving across windows.
 
@@ -36,4 +36,4 @@ GitHub Pages can serve only the public static version; it cannot run this Google
 
 ## Limitations
 
-Bill dates and amounts are user assumptions; this is a spending plan, not a bank balance. The app cannot verify whether bills cleared. Browser storage has no automatic cross-device backup. The existing chat reminders are separate; no background notifications are added by this app.
+Bill dates and amounts are user assumptions; this is a spending plan, not a bank balance. The app cannot verify whether bills cleared; due-date deductions are estimates, not bank confirmations. Browser storage has no automatic cross-device backup. The existing chat reminders are separate; no background notifications are added by this app.
