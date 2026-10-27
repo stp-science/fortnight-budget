@@ -1,1 +1,1 @@
-{"name":"fortnight-budget","version":"1.0.0","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js","start":"node server.js"}}
+{"name":"fortnight-budget","version":"1.1.0","private":true,"type":"module","engines":{"node":">=22"},"scripts":{"test":"node --test tests/*.test.js","start":"node auth-server.js","preview":"node server.js"},"dependencies":{"google-auth-library":"11.3.1"}}
