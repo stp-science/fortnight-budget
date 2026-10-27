@@ -7,3 +7,10 @@
 .signed-in-bar{display:flex;align-items:center;justify-content:flex-end;gap:12px;font-size:11px;color:var(--muted);margin:-18px 0 22px;flex-wrap:wrap}
 
 .cash-line{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-top:18px;padding-top:17px;border-top:1px solid #ffffff22}.cash-line strong{font-size:23px;letter-spacing:-.7px;white-space:nowrap}.cash-date{display:block;font-size:10px;color:#cbdbd2;margin-top:6px}.bill-detail{display:flex;gap:10px;align-items:center;flex:1}.bill-status-icon{display:grid;place-items:center;width:24px;height:24px;flex:none;border-radius:50%;background:#eff2ea;color:#75866e;font-size:15px}.bill-status-icon.deducted{background:#e4f0dd;color:#457447}.bill-row.paid .entry-name{text-decoration:none}.bill-row.paid .entry-amount{color:#66746c}
+
+/* Clear calculation of money available after commitments and savings. */
+.spend-breakdown{margin:18px 0 20px;padding:14px 16px;background:rgba(255,255,255,.09);border-radius:14px;display:grid;gap:10px;font-size:12px}
+.spend-breakdown>div{display:flex;justify-content:space-between;align-items:baseline;gap:14px}
+.spend-breakdown span{color:#d9e9de;line-height:1.4}
+.spend-breakdown strong{font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:650}
+.spend-breakdown-total{border-top:1px solid rgba(255,255,255,.22);padding-top:12px;margin-top:2px;font-size:14px}
