@@ -7,3 +7,5 @@
 .signed-in-bar{display:flex;align-items:center;justify-content:flex-end;gap:12px;font-size:11px;color:var(--muted);margin:-18px 0 22px;flex-wrap:wrap}
 
 .cash-line{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-top:18px;padding-top:17px;border-top:1px solid #ffffff22}.cash-line strong{font-size:23px;letter-spacing:-.7px;white-space:nowrap}.cash-date{display:block;font-size:10px;color:#cbdbd2;margin-top:6px}.bill-detail{display:flex;gap:10px;align-items:center;flex:1}.bill-status-icon{display:grid;place-items:center;width:24px;height:24px;flex:none;border-radius:50%;background:#eff2ea;color:#75866e;font-size:15px}.bill-status-icon.deducted{background:#e4f0dd;color:#457447}.bill-row.paid .entry-name{text-decoration:none}.bill-row.paid .entry-amount{color:#66746c}
+
+.day-check{margin:0 0 20px;padding:16px;background:#f4f6ef;border-radius:12px;display:flex;gap:12px;align-items:end;flex-wrap:wrap}.day-check label{margin:0;flex:1;min-width:160px}.day-check p{width:100%;margin:0}.day-check input{max-width:240px}#sync-notice .button{margin:0 8px 8px 0}#sync-status{line-height:1.6}

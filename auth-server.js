@@ -4,13 +4,15 @@ import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {OAuth2Client} from 'google-auth-library';
+import {createCloudStore} from './cloud-store.js';
+import {validateState} from './model.js';
 
 const root=fileURLToPath(new URL('.',import.meta.url));
 const random=()=>randomBytes(32).toString('base64url');
 const hash=s=>createHash('sha256').update(s).digest('base64url');
 const same=(a,b)=>typeof a==='string'&&typeof b==='string'&&a.length===b.length&&timingSafeEqual(Buffer.from(a),Buffer.from(b));
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const assets=new Map([['/','index.html'],['/index.html','index.html'],['/app.js','app.js'],['/model.js','model.js'],['/style.css','style.css'],['/icon.svg','icon.svg'],['/auth-client.js','auth-client.js']]);
+const assets=new Map([['/','index.html'],['/index.html','index.html'],['/app.js','app.js'],['/model.js','model.js'],['/sync.js','sync.js'],['/style.css','style.css'],['/icon.svg','icon.svg'],['/auth-client.js','auth-client.js']]);
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml'};
 const sessionTTL=8*60*60*1000,flowTTL=10*60*1000;
 
@@ -24,7 +26,7 @@ export function authConfig(env){
  return{origin:u.origin,secure:u.protocol==='https:',clientId:env.GOOGLE_CLIENT_ID.trim(),clientSecret:env.GOOGLE_CLIENT_SECRET.trim(),email};
 }
 
-export function createAuthServer({env=process.env,oauthFactory=(c)=>new OAuth2Client(c.clientId,c.clientSecret,c.origin+'/auth/callback'),now=Date.now}={}){
+export function createAuthServer({env=process.env,oauthFactory=(c)=>new OAuth2Client(c.clientId,c.clientSecret,c.origin+'/auth/callback'),now=Date.now,store=createCloudStore(env)}={}){
  const config=authConfig(env),oauth=config?oauthFactory(config):null,sessions=new Map(),flows=new Map();
  const sessionCookie=config?.secure?'__Host-fortnight_session':'fortnight_session';
  const flowCookie=config?.secure?'__Host-fortnight_flow':'fortnight_flow';
@@ -67,7 +69,18 @@ export function createAuthServer({env=process.env,oauthFactory=(c)=>new OAuth2Cl
     if(token)sessions.delete(hash(token));res.setHeader('Set-Cookie',[cookie(flowCookie,'',0),cookie(sessionCookie,newToken,sessionTTL/1000)]);redirect('/');return;
    }
    if(!session){if(pathname.startsWith('/api/')||path.extname(pathname)){send(401,'Sign-in required','text/plain');}else redirect('/signin');return;}
-   if(pathname==='/api/session'){if(req.method!=='GET'){send(405,'Method not allowed','text/plain');return;}send(200,JSON.stringify({email:session.email,csrf:session.csrf}),'application/json');return;}
+   if(pathname==='/api/session'){if(req.method!=='GET'){send(405,'Method not allowed','text/plain');return;}send(200,JSON.stringify({email:session.email,csrf:session.csrf,syncEnabled:!!store}),'application/json');return;}
+   if(pathname==='/api/budget'){
+    const json=(status,data)=>send(status,JSON.stringify(data),'application/json');
+    if(!store){json(503,{error:'Online storage is not connected yet.'});return;}
+    if(req.method==='GET'){try{json(200,await store.read(session.sub));}catch{json(503,{error:'Online storage is temporarily unavailable.'});}return;}
+    if(req.method!=='PUT'){json(405,{error:'Method not allowed'});return;}
+    if(req.headers.origin!==config.origin||!same(req.headers['x-csrf-token'],session.csrf)){json(403,{error:'Request could not be verified'});return;}
+    if(!req.headers['content-type']?.startsWith('application/json')){json(415,{error:'JSON required'});return;}
+    let chunks=[],size=0;for await(const chunk of req){size+=chunk.length;if(size>2000000){json(413,{error:'Budget must be smaller than 2 MB.'});return;}chunks.push(chunk);}
+    let body,validated;try{body=JSON.parse(Buffer.concat(chunks).toString());if(!Number.isSafeInteger(body.revision)||body.revision<0)throw Error();validated=validateState(body.state);}catch{json(400,{error:'Invalid budget data. Your saved budget was not changed.'});return;}
+    try{const saved=await store.save(session.sub,body.revision,validated);json(saved.conflict?409:200,saved);}catch{json(503,{error:'Could not save online. Keep this window open and retry.'});}return;
+   }
    if(pathname==='/auth/logout'){
     if(req.method!=='POST'||req.headers.origin!==config.origin||!same(req.headers['x-csrf-token'],session.csrf)){send(403,'Request could not be verified','text/plain');return;}
     sessions.delete(hash(token));res.setHeader('Set-Cookie',cookie(sessionCookie,'',0));send(200,'Signed out','text/plain');return;

@@ -1,8 +1,9 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {createAuthServer,authConfig} from '../auth-server.js';
+import {newPeriod} from '../model.js';
 const env={APP_URL:'https://budget.example',GOOGLE_CLIENT_ID:'test-client',GOOGLE_CLIENT_SECRET:'test-only-secret',ALLOWED_GOOGLE_EMAIL:'owner@example.com',NODE_ENV:'production'};
 async function harness(t,opts={}){let args;let time=Date.now();const oauth={generateAuthUrl:a=>{args=a;return 'https://accounts.google.com/o/oauth2/v2/auth?'+new URLSearchParams(a);},getToken:async a=>{assert.equal(a.redirect_uri,'https://budget.example/auth/callback');assert.equal(typeof a.codeVerifier,'string');return{tokens:{id_token:'test-token'}};},verifyIdToken:async a=>{assert.equal(a.audience,'test-client');if(opts.invalidToken)throw Error('Invalid Google signature');return{getPayload:()=>({sub:'google-sub',email:opts.email||'owner@example.com',email_verified:opts.unverified?false:true,nonce:opts.badNonce?'wrong':args.nonce})};}};
- const server=createAuthServer({env:opts.noConfig?{}:env,oauthFactory:()=>oauth,now:()=>time});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>new Promise(resolve=>server.close(resolve)));const origin='http://127.0.0.1:'+server.address().port;
+ const server=createAuthServer({env:opts.noConfig?{}:env,oauthFactory:()=>oauth,now:()=>time,store:opts.store||null});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>new Promise(resolve=>server.close(resolve)));const origin='http://127.0.0.1:'+server.address().port;
  const req=(p,options={})=>fetch(origin+p,{redirect:'manual',...options});
  async function start(){const r=await req('/auth/login');const cookie=r.headers.getSetCookie()[0].split(';')[0];return{state:args.state,cookie,args,response:r};}
  async function finish(flow){return req('/auth/callback?code=test-code&state='+flow.state,{headers:{Cookie:flow.cookie}});}
@@ -16,3 +17,24 @@ test('callback rejects missing binding, fabricated state and replay',async t=>{c
 for(const opts of [{email:'other@example.com'},{unverified:true},{badNonce:true},{invalidToken:true}])test('rejects unauthorised or invalid Google identity '+JSON.stringify(opts),async t=>{const h=await harness(t,opts),r=await h.finish(await h.start());assert.ok([403,502].includes(r.status));assert.ok(!r.headers.getSetCookie().some(x=>x.startsWith('__Host-fortnight_session=')&&!x.includes('Max-Age=0')));});
 test('owner session grants assets, hides server files and supports verified sign-out',async t=>{const h=await harness(t),r=await h.finish(await h.start());assert.equal(r.status,303);const cookie=r.headers.getSetCookie().find(x=>x.startsWith('__Host-fortnight_session=')).split(';')[0];const headers={Cookie:cookie};const home=await h.req('/',{headers});assert.equal(home.status,200);assert.match(await home.text(),/auth-client.js/);assert.equal(home.headers.get('cache-control'),'no-store, private');assert.equal((await h.req('/auth-server.js',{headers})).status,404);assert.equal((await h.req('/.env',{headers})).status,404);assert.equal((await h.req('/api/session',{headers:{Cookie:'__Host-fortnight_session=forged'}})).status,401);const profile=await(await h.req('/api/session',{headers})).json();assert.equal(profile.email,'owner@example.com');assert.equal((await h.req('/auth/logout',{method:'POST',headers})).status,403);assert.equal((await h.req('/auth/logout',{method:'POST',headers:{...headers,Origin:'https://evil.example','X-CSRF-Token':profile.csrf}})).status,403);assert.equal((await h.req('/auth/logout',{method:'POST',headers:{...headers,Origin:'https://budget.example','X-CSRF-Token':profile.csrf}})).status,200);assert.equal((await h.req('/api/session',{headers})).status,401);});
 test('expired sessions and sign-in flows do not grant access',async t=>{const h=await harness(t),f=await h.start();h.setTime(h.now()+11*60*1000);assert.equal((await h.finish(f)).status,400);const r=await h.finish(await h.start()),cookie=r.headers.getSetCookie().find(x=>x.startsWith('__Host-fortnight_session=')).split(';')[0];h.setTime(h.now()+9*60*60*1000);assert.equal((await h.req('/api/session',{headers:{Cookie:cookie}})).status,401);});
+
+test('cloud budget API requires owner session and CSRF, validates data, ignores client owner',async t=>{
+ let saved=null;const store={read:async owner=>{assert.equal(owner,'google-sub');return{revision:0,state:null};},save:async(owner,revision,state)=>{saved={owner,revision,state};return{revision:1,state};}};
+ const h=await harness(t,{store});assert.equal((await h.req('/api/budget')).status,401);
+ const login=await h.finish(await h.start()),cookie=login.headers.getSetCookie().find(x=>x.startsWith('__Host-fortnight_session=')).split(';')[0];const headers={Cookie:cookie};
+ const session=await(await h.req('/api/session',{headers})).json();assert.equal(session.syncEnabled,true);
+ assert.equal((await h.req('/api/budget',{headers})).status,200);
+ const p=newPeriod('2026-10-25','2026-11-03',10000),state={version:1,activeId:p.id,periods:[p]},body=JSON.stringify({revision:0,state,owner:'someone-else'});
+ assert.equal((await h.req('/api/budget',{method:'PUT',headers,body})).status,403);
+ const verified={...headers,Origin:env.APP_URL,'X-CSRF-Token':session.csrf,'Content-Type':'application/json'};
+ assert.equal((await h.req('/api/budget',{method:'PUT',headers:{...verified,Origin:'https://evil.example'},body})).status,403);
+ assert.equal((await h.req('/api/budget',{method:'PUT',headers:verified,body:JSON.stringify({revision:0,state:{bad:true}})})).status,400);assert.equal(saved,null);
+ assert.equal((await h.req('/api/budget',{method:'PUT',headers:verified,body})).status,200);assert.equal(saved.owner,'google-sub');assert.deepEqual(saved.state,state);
+});
+test('cloud API reports conflicts and outages without revealing server credentials',async t=>{
+ const h=await harness(t,{store:{read:async()=>{throw Error('secret database token');},save:async()=>({conflict:true,revision:2,state:{}})}});
+ const login=await h.finish(await h.start()),cookie=login.headers.getSetCookie().find(x=>x.startsWith('__Host-fortnight_session=')).split(';')[0],headers={Cookie:cookie};const session=await(await h.req('/api/session',{headers})).json();
+ const r=await h.req('/api/budget',{headers});assert.equal(r.status,503);assert.ok(!(await r.text()).includes('secret'));
+ const p=newPeriod('2026-10-25','2026-11-03',10000);const conflict=await h.req('/api/budget',{method:'PUT',headers:{...headers,Origin:env.APP_URL,'X-CSRF-Token':session.csrf,'Content-Type':'application/json'},body:JSON.stringify({revision:0,state:{version:1,activeId:p.id,periods:[p]}})});assert.equal(conflict.status,409);
+ assert.equal((await h.req('/cloud-store.js',{headers})).status,404);assert.equal((await h.req('/cloud-schema.sql',{headers})).status,404);
+});

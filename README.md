@@ -26,7 +26,11 @@ Keep all entries within the chosen dates. Opening money must be the balance befo
 
 ## Data and privacy
 
-No bank connection, analytics, external fonts, server-side budget storage or cloud sync. The protected server checks Google identity and an owner-email allowlist; budget records remain in localStorage on the current browser/device and origin. The static preview and GitHub Pages do not enforce sign-in. Hosting the app on GitHub Pages does not upload entries to GitHub. Someone controlling the same browser profile can inspect its local records even with Google sign-in. Clearing browser data can remove them. Export backups regularly; import a backup on another device or host to move records. The app does not automatically send entries to the finance-coaching chat or its reminders.
+No bank connection, analytics or external fonts. Optional private cloud sync stores the budget in a dedicated Supabase project, behind the Render server's owner-only Google authentication. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY only in the server environment after applying cloud-schema.sql. The backend key must never be put in browser code, GitHub, a backup, or a chat message. Budget tables have RLS enabled and no browser grants or browser policies; only the protected backend can use their RPCs. The verified Google subject selects the owner; clients cannot choose it.
+
+Online writes use revision checks and retained recovery history. A stale device cannot overwrite a newer budget. Offline changes are kept as a pending device copy; retry before making another change. A first device with a different existing budget asks you to choose the online copy and offers a recovery download. Download regular backups even with sync. Mark a date complete after all expenses are logged; adding, editing or deleting expenses reopens the affected day. A connected finance coach can read the saved budget through the authorised Supabase connection for reminders; Google sign-in alone does not connect a chat.
+
+Without storage configuration, the app continues using browser-only records and explicitly shows that online setup is pending. The static preview and old GitHub Pages site have no server authentication or sync.
 
 Backups contain financial information. Keep them private and out of source control. Import validates dates, categories and integer money values and asks before replacing existing records. Monetary calculations use integer cents. The app retains completed windows rather than silently rolling balances forward. Source code contains no personal financial data; user-specific setup can be imported locally.
 
@@ -36,4 +40,4 @@ GitHub Pages can serve only the public static version; it cannot run this Google
 
 ## Limitations
 
-Bill dates and amounts are user assumptions; this is a spending plan, not a bank balance. The app cannot verify whether bills cleared; due-date deductions are estimates, not bank confirmations. Browser storage has no automatic cross-device backup. The existing chat reminders are separate; no background notifications are added by this app.
+Bill dates and amounts are user assumptions; this is a spending plan, not a bank balance. The app cannot verify whether bills cleared; due-date deductions are estimates, not bank confirmations. Cross-device sync requires the private storage environment variables and a working connection. This app does not send notifications itself; the separate coaching reminder must read the connected storage.
