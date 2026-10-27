@@ -9,3 +9,5 @@ screenshots/
 
 dist-firebase/
 .firebase/
+
+*-debug.log

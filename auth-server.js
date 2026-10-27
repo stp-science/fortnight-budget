@@ -10,7 +10,7 @@ const random=()=>randomBytes(32).toString('base64url');
 const hash=s=>createHash('sha256').update(s).digest('base64url');
 const same=(a,b)=>typeof a==='string'&&typeof b==='string'&&a.length===b.length&&timingSafeEqual(Buffer.from(a),Buffer.from(b));
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const assets=new Map([['/','index.html'],['/index.html','index.html'],['/app.js','app.js'],['/model.js','model.js'],['/style.css','style.css'],['/icon.svg','icon.svg'],['/auth-client.js','auth-client.js']]);
+const assets=new Map([['/','index.html'],['/index.html','index.html'],['/app.js','app.js'],['/model.js','model.js'],['/style.css','style.css'],['/icon.svg','icon.svg'],['/auth-client.js','auth-client.js'],['/budget-storage.js','budget-storage.js']]);
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml'};
 const sessionTTL=8*60*60*1000,flowTTL=10*60*1000;
 

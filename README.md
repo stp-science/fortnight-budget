@@ -1,5 +1,7 @@
 # Fortnight
 
+For the live Firebase version with private Google accounts and cross-device budget sync, see [FIREBASE.md](FIREBASE.md). The local/static mode described below still stores records only in its current browser.
+
 A small, responsive daily expense tracker for the money between paydays. Choose a category, enter one total per purchase/payment, and optionally add the store name. No item-by-item shopping list is needed.
 
 ## Use

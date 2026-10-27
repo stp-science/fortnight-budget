@@ -1,0 +1,10 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "budgets",
+      "fieldPath": "data",
+      "indexes": []
+    }
+  ]
+}
