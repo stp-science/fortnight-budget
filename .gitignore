@@ -6,3 +6,6 @@ personal*.json
 .env.*
 !.env.example
 screenshots/
+
+dist-firebase/
+.firebase/
