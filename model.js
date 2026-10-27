@@ -23,8 +23,11 @@ const sum=a=>a.reduce((s,x)=>s+x.amount,0);
 export function totals(p,on=today()){
  const bills=occurrences(p,on),fixed=sum(bills),paid=sum(bills.filter(b=>b.paid)),spent=sum(p.expenses),income=sum(p.income),saved=sum(p.savings);
  const remaining=p.opening+income-fixed-spent-saved-p.buffer;
+ const upcomingBills=fixed-paid;
+ const savingsStillToReserve=Math.max(0,(p.savingsGoal||0)-saved);
+ const safeToSpend=remaining-savingsStillToReserve;
  const daysLeft=Math.max(0,daysBetween(on<p.start?p.start:on,p.end));
- return{fixed,paid,spent,income,saved,remaining,daysLeft,perDay:daysLeft?Math.floor(Math.max(0,remaining)/daysLeft):0,cash:p.opening+income-spent-saved-paid,availableAtStart:p.opening-fixed-p.buffer};
+ return{fixed,paid,upcomingBills,spent,income,saved,remaining,savingsStillToReserve,safeToSpend,daysLeft,perDay:daysLeft?Math.floor(Math.max(0,safeToSpend)/daysLeft):0,cash:p.opening+income-spent-saved-paid,availableAtStart:p.opening-fixed-p.buffer};
 }
 export function timeline(p){let left=p.opening-occurrences(p).reduce((s,b)=>s+b.amount,0)-p.buffer;const points=[{date:p.start,value:left,label:'Opening spending money'}];
  const events=[...p.expenses.map(x=>({...x,delta:-x.amount})),...p.income.map(x=>({...x,delta:x.amount})),...p.savings.map(x=>({...x,delta:-x.amount}))].sort((a,b)=>a.date.localeCompare(b.date));
