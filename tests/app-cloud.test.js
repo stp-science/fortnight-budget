@@ -69,3 +69,17 @@ test('remote updates refresh the budget and stale open forms cannot overwrite th
   assert.match(p.document.querySelector('#plan-error').textContent,/changed while this form/);
   assert.equal(p.storage.state.periods[0].opening,20000);
 });
+
+test('day completion waits for a successful cloud save and keeps spending intact',async t=>{
+ const initial=filled();initial.periods[0].expenses.push({id:'e',date:'2026-10-25',amount:250,note:'Shop',category:'Groceries'});
+ const p=await page(t,initial),date=p.document.querySelector('#complete-date');date.value='2026-10-25';date.onchange();
+ p.setFail(true);await p.document.querySelector('#complete-day').onclick();assert.deepEqual(p.storage.state.periods[0].completedDays,[]);
+ p.setFail(false);await p.document.querySelector('#complete-day').onclick();assert.deepEqual(p.storage.state.periods[0].completedDays,['2026-10-25']);assert.equal(p.storage.state.periods[0].expenses.length,1);assert.deepEqual(p.storage.state.periods[0].noSpendDays,[]);
+ await p.document.querySelector('#complete-day').onclick();assert.deepEqual(p.storage.state.periods[0].completedDays,[]);
+});
+test('zero spending completion is explicit; a later expense reopens the day',async t=>{
+ const p=await page(t,filled()),date=p.document.querySelector('#complete-date');date.value='2026-10-25';date.onchange();await p.document.querySelector('#complete-day').onclick();
+ assert.deepEqual(p.storage.state.periods[0].noSpendDays,['2026-10-25']);
+ p.document.querySelector('#add-top').click();const form=p.document.querySelector('#entry-form');form.elements.kind.value='expense';form.elements.date.value='2026-10-25';form.elements.amount.value='5';form.elements.category.value='Groceries';form.elements.note.value='Top-up';
+ await form.onsubmit({preventDefault(){},currentTarget:form});assert.deepEqual(p.storage.state.periods[0].completedDays,[]);assert.deepEqual(p.storage.state.periods[0].noSpendDays,[]);
+});

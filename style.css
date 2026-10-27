@@ -14,3 +14,5 @@
 .spend-breakdown span{color:#d9e9de;line-height:1.4}
 .spend-breakdown strong{font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:650}
 .spend-breakdown-total{border-top:1px solid rgba(255,255,255,.22);padding-top:12px;margin-top:2px;font-size:14px}
+
+.day-check{margin:0 0 20px;padding:16px;background:#f4f6ef;border-radius:12px;display:flex;gap:12px;align-items:end;flex-wrap:wrap}.day-check label{margin:0;flex:1;min-width:160px}.day-check p{width:100%;margin:0}.day-check input{max-width:240px}

@@ -1,5 +1,11 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {cents,dateNumber,addDays,daysBetween,newPeriod,occurrences,totals,timeline,validateState} from '../model.js';
+
+test('old backups preserve explicit no-spend completion without inventing expense completion',()=>{
+ const p=newPeriod('2026-10-20','2026-11-03');delete p.completedDays;p.noSpendDays=['2026-10-25'];
+ const raw={version:1,activeId:p.id,periods:[p]};assert.deepEqual(validateState(raw).periods[0].completedDays,['2026-10-25']);
+ raw.periods[0].completedDays=['2026-11-04'];assert.throws(()=>validateState(raw));
+});
 test('money uses exact cents and rejects invalid input',()=>{assert.equal(cents('51.98'),5198);for(const v of ['NaN','-1','1.999','Infinity','1e3'])assert.throws(()=>cents(v));});
 test('dates ignore DST and reject invalid dates',()=>{assert.equal(addDays('2026-09-26',14),'2026-10-10');assert.equal(daysBetween('2026-10-20','2026-11-03'),14);assert.throws(()=>dateNumber('2026-02-30'));});
 test('weekly and fortnightly schedules exclude next payday',()=>{const p=newPeriod('2026-10-20','2026-11-03',300000);p.bills=[{id:'rent',name:'Rent',date:'2026-10-21',amount:70000,frequency:'weekly'},{id:'ins',name:'Insurance',date:'2026-10-20',amount:6000,frequency:'fortnightly'}];assert.equal(occurrences(p).length,3);assert.equal(totals(p).fixed,146000);});

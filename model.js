@@ -6,7 +6,7 @@ export const addDays=(s,n)=>new Date((dateNumber(s)+n)*86400000).toISOString().s
 export const daysBetween=(a,b)=>dateNumber(b)-dateNumber(a);
 export function today(){const parts=new Intl.DateTimeFormat('en-NZ',{timeZone:'Pacific/Auckland',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const part=t=>parts.find(p=>p.type===t).value;return `${part('year')}-${part('month')}-${part('day')}`;}
 export const uid=()=>globalThis.crypto.randomUUID();
-export function newPeriod(start,end,opening=0,buffer=0,bills=[]){return{id:uid(),start,end,opening,buffer,savingsGoal:0,bills:structuredClone(bills),expenses:[],income:[],savings:[],paidBills:[],noSpendDays:[]};}
+export function newPeriod(start,end,opening=0,buffer=0,bills=[]){return{id:uid(),start,end,opening,buffer,savingsGoal:0,bills:structuredClone(bills),expenses:[],income:[],savings:[],paidBills:[],noSpendDays:[],completedDays:[]};}
 export function occurrences(p,on=today()){const rows=[];
  for(const b of p.bills){const anchor=dateNumber(b.date),start=dateNumber(p.start),end=dateNumber(p.end);if(b.end&&dateNumber(b.end)<start)continue;
   if(b.frequency==='monthly'){
@@ -43,8 +43,8 @@ export function validateState(raw){
   const bills=arr(p.bills).map(b=>{if(!['once','weekly','fortnightly','monthly'].includes(b.frequency))throw Error('Invalid bill schedule.');return{id:text(b.id),name:text(b.name),date:date(b.date),end:b.end?date(b.end):'',amount:amt(b.amount),frequency:b.frequency};});
   if(new Set(bills.map(b=>b.id)).size!==bills.length)throw Error('Duplicate bill.');
   function entries(a,kind){const seen=new Set();return arr(a).map(x=>{const id=text(x.id);if(seen.has(id))throw Error('Duplicate entry.');seen.add(id);const d=date(x.date);if(d<start||d>=end)throw Error('Entry falls outside its period.');const result={id,date:d,amount:amt(x.amount),note:text(x.note)};if(kind==='expense'){if(!categories.includes(x.category))throw Error('Invalid category.');result.category=x.category;}return result;});}
-  const paidBills=arr(p.paidBills).map(x=>text(x,200)),noSpendDays=arr(p.noSpendDays).map(date);
-  return{id,start,end,opening:amt(p.opening),buffer:amt(p.buffer),savingsGoal:amt(p.savingsGoal||0),bills,expenses:entries(p.expenses,'expense'),income:entries(p.income,'income'),savings:entries(p.savings||[],'savings'),paidBills:[...new Set(paidBills)],noSpendDays:[...new Set(noSpendDays)]};
+  const paidBills=arr(p.paidBills).map(x=>text(x,200)),noSpendDays=arr(p.noSpendDays).map(date),completedDays=arr(p.completedDays||[]).map(date);if(completedDays.some(d=>d<start||d>=end))throw Error('Completed day outside its period.');
+  return{id,start,end,opening:amt(p.opening),buffer:amt(p.buffer),savingsGoal:amt(p.savingsGoal||0),bills,expenses:entries(p.expenses,'expense'),income:entries(p.income,'income'),savings:entries(p.savings||[],'savings'),paidBills:[...new Set(paidBills)],noSpendDays:[...new Set(noSpendDays)],completedDays:[...new Set([...completedDays,...noSpendDays])]};
  });
  for(const p of periods){if(p.noSpendDays.some(d=>d<p.start||d>=p.end||p.expenses.some(e=>e.date===d)))throw Error('Invalid no-spend day.');}
  const sorted=[...periods].sort((a,b)=>a.start.localeCompare(b.start));for(let i=1;i<sorted.length;i++)if(sorted[i].start<sorted[i-1].end)throw Error('Overlapping periods.');
